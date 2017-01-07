@@ -1,5 +1,5 @@
 from .constants import DESCRIPTOR_TYPE, DEVICE_CAPABILITY_TYPE
-from .formatters import UInt8Formatter, UInt16Formatter, BCD16Formatter, BitMapFormatter, StringFormatter
+from .formatters import UInt8Formatter, UInt16Formatter, BCD16Formatter, BitMapFormatter, StringFormatter, Formatter, CommentFormatter
 from .defaults import defaults
 
 
@@ -30,7 +30,11 @@ class Descriptor(object):
         raise Exception(args)
 
     def __str__(self):
-        return '{\n' + ''.join('\t{}\n'.format(formatter) for formatter in self.get_data()) + '}'
+        formatters = self.get_data()
+        max_main_length = max(formatter.get_main_length() for formatter in formatters)
+        for formatter in formatters:
+            formatter.set_max_main_length(max_main_length)
+        return '{\n' + ''.join('\t{}\n'.format(formatter) for formatter in formatters) + '}'
 
 
 class Container(Descriptor):
@@ -59,7 +63,7 @@ class Container(Descriptor):
 
         data = super(Container, self).get_data()
         for child in self._children:
-            data += ['', '/* {} */'.format(child.__class__.__name__)] + child.get_data()
+            data += [Formatter(), CommentFormatter(child.__class__.__name__)] + child.get_data()
 
         return data
 

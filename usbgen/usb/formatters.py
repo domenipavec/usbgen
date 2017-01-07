@@ -5,6 +5,7 @@ class Formatter(object):
         self._additional = []
         self._comment = ''
         self._main = ''
+        self._max_main_length = 4
 
     def set(self, main=None, comment=None, additional=None):
         if main is not None:
@@ -13,6 +14,12 @@ class Formatter(object):
             self._comment = comment
         if additional is not None:
             self._additional = additional
+
+    def get_main_length(self):
+        return len(self._main)
+
+    def set_max_main_length(self, max_main_length):
+        self._max_main_length = max_main_length
 
     def _parse_int(self, i):
         if type(i) == str:
@@ -27,13 +34,25 @@ class Formatter(object):
 
     def __str__(self):
         output = ''
-        if self._comment:
-            output += '{:<24} /* {} */'.format(self._main, self._comment)
-        else:
+        if self._comment and self._main:
+            output += '{0:<{2}}  /* {1} */'.format(self._main, self._comment, self._max_main_length)
+        elif self._main:
             output += self._main
+        elif self._comment:
+            output += '/* {} */'.format(self._comment)
         if self._additional:
             output += '\n' + '\n'.join('\t{}'.format(additional) for additional in self._additional)
         return output
+
+
+class CommentFormatter(Formatter):
+    def __init__(self, comment):
+        super(CommentFormatter, self).__init__()
+
+        self.set(comment)
+
+    def set(self, comment):
+        super(CommentFormatter, self).set(comment=comment)
 
 
 class UInt8Formatter(Formatter):
