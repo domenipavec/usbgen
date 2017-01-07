@@ -53,3 +53,16 @@ class DeviceDescriptor(Descriptor):
         self.append(UInt8Formatter(defaults.get('product_string', kwargs, 0), "Product string index"))
         self.append(UInt8Formatter(defaults.get('serial_number_string', kwargs, 0), "Serial string index"))
         self.append(UInt8Formatter(defaults.get('number_of_configurations', kwargs, 1), "Number of configurations"))
+
+
+class DeviceQualifierDescriptor(Descriptor):
+    def __init__(self, **kwargs):
+        super(DeviceQualifierDescriptor, self).__init__(DESCRIPTOR_TYPE.DEVICE_QUALIFIER)
+
+        self.append(BCD16Formatter(defaults.get('usb_version', kwargs, 2.0), "USB Version"))
+        self.append(UInt8Formatter(defaults.get('device_class', kwargs, 0), "Device Class"))
+        self.append(UInt8Formatter(defaults.get('device_subclass', kwargs, 0), "Device Sub-class"))
+        self.append(UInt8Formatter(defaults.get('device_protocol', kwargs, 0), "Device Protocol"))
+        self.append(UInt8Formatter(defaults.get('max_packet_size', kwargs, 8), "Max packet size for EP0"))
+        self.append(UInt8Formatter(defaults.get('number_of_configurations', kwargs, 1), "Number of configurations"))
+        self.append(UInt8Formatter(0, "Reserved"))

@@ -1,11 +1,14 @@
 
 class DESCRIPTOR_TYPE:
     # source: http://www.usb.org/developers/docs/usb_31_120516.zip, 2017-01-07
+    # and: http://www.usb.org/developers/docs/usb20_docs/usb_20_120516.zip, 2017-01-07
     DEVICE = 1
     CONFIGURATION = 2
     STRING = 3
     INTERFACE = 4
     ENDPOINT = 5
+    DEVICE_QUALIFIER = 6
+    OTHER_SPEED_CONFIGURATION = 7
     INTERFACE_POWER = 8
     OTG = 9
     DEBUG = 10
