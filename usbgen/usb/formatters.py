@@ -8,6 +8,14 @@ class Formatter(object):
         if not hasattr(self, '_len'):
             self._len = 0
 
+    def _parse_int(self, i):
+        if type(i) == str:
+            return int(i, 0)
+        elif type(i) == int:
+            return i
+        else:
+            raise Exception("Invalid type passed for int")
+
     def __len__(self):
         return self._len
 
@@ -24,17 +32,45 @@ class Formatter(object):
 
 class UInt8Formatter(Formatter):
     def __init__(self, i, comment=''):
-        if type(i) != int:
-            raise Exception("Expected int")
+        i = self._parse_int(i)
 
         if i < 0 or i > 255:
-            raise Exception("Int out of range")
+            raise Exception("UInt8 out of range")
 
         self._len = 1
 
         output = "{0:#04x},".format(i)
 
         super(UInt8Formatter, self).__init__(output, comment)
+
+
+class UInt16Formatter(Formatter):
+    def __init__(self, i, comment=''):
+        i = self._parse_int(i)
+
+        if i < 0 or i > 2**16 - 1:
+            raise Exception("UInt16 out of range")
+
+        self._len = 2
+
+        output = "{0:#04x}, {1:#04x},".format(i & 0xff, i >> 8)
+
+        super(UInt16Formatter, self).__init__(output, comment)
+
+
+class BCD16Formatter(Formatter):
+    def __init__(self, n, comment=''):
+        if type(n) != float:
+            raise Exception("Expected float")
+
+        if n < 0 or n >= 100:
+            raise Exception("BCD16 out of range")
+
+        self._len = 2
+
+        output = "0x{1:02}, 0x{0:02},".format(int(n), int(round((n - int(n)) * 100)))
+
+        super(BCD16Formatter, self).__init__(output, comment)
 
 
 class StringFormatter(Formatter):
