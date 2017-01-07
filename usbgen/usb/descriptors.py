@@ -29,5 +29,5 @@ class Descriptor(object):
 class StringDescriptor(Descriptor):
     def __init__(self, *args):
         super(StringDescriptor, self).__init__(DESCRIPTOR_TYPE.STRING)
-        if len(args) == 1 and type(args[0]) == str:
+        if len(args) == 1 and (type(args[0]) == str or type(args[0]) == unicode):
             self.append(StringFormatter(args[0], 'String'))
