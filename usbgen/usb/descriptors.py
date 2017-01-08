@@ -37,18 +37,15 @@ class Descriptor(object):
         return '{\n' + ''.join('\t{}\n'.format(formatter) for formatter in formatters) + '}'
 
 
-class Container(Descriptor):
+class DescriptorWithChildren(Descriptor):
     def __init__(self, descriptor_type, *children):
-        super(Container, self).__init__(descriptor_type)
+        super(DescriptorWithChildren, self).__init__(descriptor_type)
 
         self._children = []
         self._children_size = 0
 
         self._size_formatter = UInt16Formatter(0, 'Size of descriptor and all its sub descriptors')
         self._number_formatter = UInt8Formatter(0, 'Number of sub descriptors')
-
-        self.append(self._size_formatter)
-        self.append(self._number_formatter)
 
         for child in children:
             self.add(child)
@@ -61,11 +58,19 @@ class Container(Descriptor):
         self._size_formatter.set(len(self) + self._children_size)
         self._number_formatter.set(len(self._children))
 
-        data = super(Container, self).get_data()
+        data = super(DescriptorWithChildren, self).get_data()
         for child in self._children:
             data += [Formatter(), CommentFormatter(child.__class__.__name__)] + child.get_data()
 
         return data
+
+
+class Container(DescriptorWithChildren):
+    def __init__(self, descriptor_type, *children):
+        super(Container, self).__init__(descriptor_type, *children)
+
+        self.append(self._size_formatter)
+        self.append(self._number_formatter)
 
 
 class StringDescriptor(Descriptor):
@@ -94,6 +99,51 @@ class DeviceDescriptor(Descriptor):
         self.append(UInt8Formatter(defaults.get('product_string', kwargs, 0), "Product string index"))
         self.append(UInt8Formatter(defaults.get('serial_number_string', kwargs, 0), "Serial string index"))
         self.append(UInt8Formatter(defaults.get('number_of_configurations', kwargs, 1), "Number of configurations"))
+
+
+class ConfigurationDescriptor(Container):
+    def __init__(self, *children, **kwargs):
+        super(ConfigurationDescriptor, self).__init__(DESCRIPTOR_TYPE.CONFIGURATION, *children)
+
+        self.append(UInt8Formatter(defaults.get('configuration_number', kwargs, 1), "Configuration Number"))
+        self.append(UInt8Formatter(defaults.get('configuration_string', kwargs, 0), "Configuration String"))
+
+        self.append(BitMapFormatter(
+            1,
+            [
+                0, 0, 0, 0, 0,
+                kwargs.get('remote_wakeup', 0),
+                kwargs.get('self_powered', 0),
+            ],
+            "Attributes"
+        ))
+
+        self.append(UInt8Formatter(defaults.get('max_power', kwargs, 0), "Max power"))
+
+
+class InterfaceDescriptor(Descriptor):
+    def __init__(self, **kwargs):
+        super(InterfaceDescriptor, self).__init__(DESCRIPTOR_TYPE.INTERFACE)
+
+        self.append(UInt8Formatter(defaults.get('interface_number', kwargs, 0), "Interface number"))
+        self.append(UInt8Formatter(defaults.get('alternate_setting', kwargs, 0), "Alternate setting"))
+        self.append(UInt8Formatter(defaults.get('endpoint_count', kwargs, 0), "Number of endpoints"))
+        self.append(UInt8Formatter(defaults.get('interface_class', kwargs, 0), "Interface Class"))
+        self.append(UInt8Formatter(defaults.get('interface_subclass', kwargs, 0), "Interface Sub-class"))
+        self.append(UInt8Formatter(defaults.get('interface_protocol', kwargs, 0), "Interface Protocol"))
+        self.append(UInt8Formatter(defaults.get('interface_string', kwargs, 0), "Interface String"))
+
+
+class InterfaceAssociationDescriptor(Descriptor):
+    def __init__(self, **kwargs):
+        super(InterfaceAssociationDescriptor, self).__init__(DESCRIPTOR_TYPE.INTERFACE_ASSOCIATION)
+
+        self.append(UInt8Formatter(defaults.get('first_interface_number', kwargs, 0), "First interface number"))
+        self.append(UInt8Formatter(defaults.get('interface_count', kwargs, 0), "Number of interfaces"))
+        self.append(UInt8Formatter(defaults.get('interface_class', kwargs, 0), "Interface Class"))
+        self.append(UInt8Formatter(defaults.get('interface_subclass', kwargs, 0), "Interface Sub-class"))
+        self.append(UInt8Formatter(defaults.get('interface_protocol', kwargs, 0), "Interface Protocol"))
+        self.append(UInt8Formatter(defaults.get('interface_association_string', kwargs, 0), "Interface Association String"))
 
 
 class DeviceQualifierDescriptor(Descriptor):

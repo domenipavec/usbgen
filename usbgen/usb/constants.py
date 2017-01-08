@@ -173,6 +173,7 @@ class LANGUAGE_IDENTIFIER:
 
 
 class DEVICE_CAPABILITY_TYPE:
+    # source: http://www.usb.org/developers/docs/usb_31_120516.zip, 2017-01-07
     WIRELESS_USB = 0x01
     USB_20_EXTENSION = 0x02
     SUPERSPEED_USB = 0x03
@@ -188,6 +189,7 @@ class DEVICE_CAPABILITY_TYPE:
 
 
 class BESL:
+    # source: http://www.usb.org/developers/docs/usb20_docs/usb_20_120516.zip, 2017-01-07
     BESL_125 = 0
     BESL_150 = 1
     BESL_200 = 2
@@ -204,3 +206,37 @@ class BESL:
     BESL_8000 = 13
     BESL_9000 = 14
     BESL_10000 = 15
+
+
+class CLASS:
+    # source: http://www.usb.org/developers/defined_class, 2017-01-08
+    USE_INTERFACE_CLASS = 0x00
+    AUDIO = 0x01
+    COMMUNICATION = 0x02
+    HID = 0x03
+    PHYSICAL = 0x05
+    IMAGE = 0x06
+    PRINTER = 0x07
+    MASS_STORAGE = 0x08
+    HUB = 0x09
+    CDC_DATA = 0x0A
+    SMART_CARD = 0x0B
+    CONTENT_SECURITY = 0x0D
+    VIDEO = 0x0E
+    PERSONAL_HEALTHCARE = 0x0F
+    AUDIO_VIDEO = 0x10
+    BILLBOARD = 0x11
+    USB_TYPEC_BRIDGE = 0x12
+    DIAGNOSTIC_DEVICE = 0xDC
+    WIRELESS_CONTROLLER = 0xE0
+    MISCELLANEOUS = 0xEF
+    APPLICATION_SPECIFIC = 0xFE
+    VENDOR_SPECIFIC = 0xFF
+
+
+class SUBCLASS:
+    INTERFACE_ASSOCIATION_DESCRIPTOR = 0x02
+
+
+class PROTOCOL:
+    INTERFACE_ASSOCIATION_DESCRIPTOR = 0x01
