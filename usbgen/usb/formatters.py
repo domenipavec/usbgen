@@ -178,6 +178,38 @@ class BitMapFormatter(Formatter):
         return data
 
 
+class GUIDFormatter(Formatter):
+    def __init__(self, guid, comment=''):
+        super(GUIDFormatter, self).__init__()
+
+        self._len = 16
+
+        self.set(guid, comment)
+
+    def set(self, guid, comment=None):
+        if type(guid) != str:
+            raise Exception("Expected guid as string")
+
+        parts = guid.split('-')
+
+        if len(parts) != 5:
+            raise Exception("Invalid guid")
+
+        super(GUIDFormatter, self).set(
+            str(UInt32Formatter(int(parts[0], 16))),
+            comment,
+            [
+                str(UInt16Formatter(int(parts[1], 16))),
+                str(UInt16Formatter(int(parts[2], 16))),
+                self._format(parts[3]),
+                self._format(parts[4]),
+            ]
+        )
+
+    def _format(self, part):
+        return ' '.join([str(UInt8Formatter(int(part[2*i:2*i+2], 16))) for i in range(len(part)/2)])
+
+
 class StringFormatter(Formatter):
     def __init__(self, string, comment=''):
         super(StringFormatter, self).__init__()
