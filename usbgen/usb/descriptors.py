@@ -1,4 +1,4 @@
-from .constants import DESCRIPTOR_TYPE, DEVICE_CAPABILITY_TYPE
+from .constants import DESCRIPTOR_TYPE, DEVICE_CAPABILITY_TYPE, ENDPOINT
 from .formatters import UInt8Formatter, UInt16Formatter, BCD16Formatter, BitMapFormatter, StringFormatter, Formatter, CommentFormatter
 from .defaults import defaults
 
@@ -52,25 +52,26 @@ class DescriptorWithChildren(Descriptor):
 
     def add(self, child):
         self._children.append(child)
-        self._children_size += len(child)
+        try:
+            self._children_size += child.get_size()
+        except AttributeError:
+            self._children_size += len(child)
+
+    def get_size(self):
+        return len(self) + self._children_size
+
+    def get_number(self):
+        return len(self._children)
 
     def get_data(self):
-        self._size_formatter.set(len(self) + self._children_size)
-        self._number_formatter.set(len(self._children))
+        self._size_formatter.set(self.get_size())
+        self._number_formatter.set(self.get_number())
 
         data = super(DescriptorWithChildren, self).get_data()
         for child in self._children:
             data += [Formatter(), CommentFormatter(child.__class__.__name__)] + child.get_data()
 
         return data
-
-
-class Container(DescriptorWithChildren):
-    def __init__(self, descriptor_type, *children):
-        super(Container, self).__init__(descriptor_type, *children)
-
-        self.append(self._size_formatter)
-        self.append(self._number_formatter)
 
 
 class StringDescriptor(Descriptor):
@@ -101,9 +102,12 @@ class DeviceDescriptor(Descriptor):
         self.append(UInt8Formatter(defaults.get('number_of_configurations', kwargs, 1), "Number of configurations"))
 
 
-class ConfigurationDescriptor(Container):
+class ConfigurationDescriptor(DescriptorWithChildren):
     def __init__(self, *children, **kwargs):
         super(ConfigurationDescriptor, self).__init__(DESCRIPTOR_TYPE.CONFIGURATION, *children)
+
+        self.append(self._size_formatter)
+        self.append(self._number_formatter)
 
         self.append(UInt8Formatter(defaults.get('configuration_number', kwargs, 1), "Configuration Number"))
         self.append(UInt8Formatter(defaults.get('configuration_string', kwargs, 0), "Configuration String"))
@@ -120,6 +124,13 @@ class ConfigurationDescriptor(Container):
 
         self.append(UInt8Formatter(defaults.get('max_power', kwargs, 0), "Max power"))
 
+    def get_number(self):
+        n = 0
+        for child in self._children:
+            if type(child) == InterfaceDescriptor:
+                n += 1
+        return n
+
 
 class InterfaceDescriptor(Descriptor):
     def __init__(self, **kwargs):
@@ -132,6 +143,56 @@ class InterfaceDescriptor(Descriptor):
         self.append(UInt8Formatter(defaults.get('interface_subclass', kwargs, 0), "Interface Sub-class"))
         self.append(UInt8Formatter(defaults.get('interface_protocol', kwargs, 0), "Interface Protocol"))
         self.append(UInt8Formatter(defaults.get('interface_string', kwargs, 0), "Interface String"))
+
+
+class EndpointDescriptor(Descriptor):
+    def __init__(self, **kwargs):
+        super(EndpointDescriptor, self).__init__(DESCRIPTOR_TYPE.ENDPOINT)
+
+        endpoint_number = defaults.get('endpoint_number', kwargs, 0)
+        endpoint_in = defaults.get('endpoint_in', kwargs, False)
+        self.append(BitMapFormatter(
+            1,
+            BitMapFormatter.uint_parse(4, endpoint_number) +
+            [
+                0, 0, 0,
+                endpoint_in,
+            ],
+            "Endpoint Address"
+        ))
+
+        attributes = None
+        transfer_type = defaults.get('transfer_type', kwargs, ENDPOINT.TRANSFER_TYPE_CONTROL)
+        if transfer_type == ENDPOINT.TRANSFER_TYPE_CONTROL or transfer_type == ENDPOINT.TRANSFER_TYPE_BULK:
+            attributes = BitMapFormatter(
+                1,
+                BitMapFormatter.uint_parse(2, transfer_type),
+                "Attributes"
+            )
+        elif transfer_type == ENDPOINT.TRANSFER_TYPE_INTERRUPT:
+            attributes = BitMapFormatter(
+                1,
+                BitMapFormatter.uint_parse(2, transfer_type) +
+                [0, 0] +
+                BitMapFormatter.uint_parse(2, defaults.get('usage_type', kwargs, ENDPOINT.USAGE_TYPE_INTERRUPT_PERIODIC)),
+                "Attributes"
+            )
+        elif transfer_type == ENDPOINT.TRANSFER_TYPE_ISOCHRONOUS:
+            attributes = BitMapFormatter(
+                1,
+                BitMapFormatter.uint_parse(2, transfer_type) +
+                BitMapFormatter.uint_parse(2, defaults.get('synchronization_type', kwargs, ENDPOINT.SYNCHRONIZATION_TYPE_NONE)) +
+                BitMapFormatter.uint_parse(2, defaults.get('usage_type', kwargs, ENDPOINT.USAGE_TYPE_ISOCHRONOUS_DATA)),
+                "Attributes"
+            )
+        else:
+            raise Exception("Invalid transfer type")
+
+        self.append(attributes)
+
+        default_max_packet_size = 512 if transfer_type == ENDPOINT.TRANSFER_TYPE_CONTROL else 1024
+        self.append(UInt16Formatter(defaults.get('max_packet_size', kwargs, default_max_packet_size), "Max Packet Size"))
+        self.append(UInt8Formatter(defaults.get('interval', kwargs, 0), "Interval"))
 
 
 class InterfaceAssociationDescriptor(Descriptor):
@@ -159,9 +220,12 @@ class DeviceQualifierDescriptor(Descriptor):
         self.append(UInt8Formatter(0, "Reserved"))
 
 
-class BOSDescriptor(Container):
+class BOSDescriptor(DescriptorWithChildren):
     def __init__(self, *children):
         super(BOSDescriptor, self).__init__(DESCRIPTOR_TYPE.BOS, *children)
+
+        self.append(self._size_formatter)
+        self.append(self._number_formatter)
 
 
 class CapabilityDescriptor(Descriptor):
@@ -207,3 +271,32 @@ class SuperSpeedDeviceCapabilityDescriptor(CapabilityDescriptor):
         self.append(UInt8Formatter(full_functionality_support_speed, "Full functionality support speed"))
         self.append(UInt8Formatter(u1_device_exit_latency, "U1 Device Exit Latency"))
         self.append(UInt16Formatter(u2_device_exit_latency, "U2 Device Exit Latency"))
+
+
+class SuperSpeedEndpointCompanionDescriptor(Descriptor):
+    def __init__(self, **kwargs):
+        super(SuperSpeedEndpointCompanionDescriptor, self).__init__(DESCRIPTOR_TYPE.SUPERSPEED_USB_ENDPOINT_COMPANION)
+
+        self.append(UInt8Formatter(defaults.get('max_burst', kwargs, 1)-1, "Max Burst"))
+
+        max_streams = kwargs.get('max_streams')
+        mult = kwargs.get('mult')
+        if max_streams is not None:
+            if max_streams < 16:
+                self.append(UInt8Formatter(max_streams, "Max streams"))
+            else:
+                raise Exception("Max streams out of range")
+        elif mult is not None:
+            self.append(BitMapFormatter(
+                1,
+                BitMapFormatter.uint_parse(2, mult),
+                [
+                    0, 0, 0, 0, 0,
+                    kwargs.get('ssp_iso_companion', False)
+                ],
+                "Attributes",
+            ))
+        else:
+            self.append(UInt8Formatter(0, "Attributes"))
+
+        self.append(UInt16Formatter(defaults.get('bytes_per_interval', kwargs, 0), "Bytes Per Interval"))
