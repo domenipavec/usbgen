@@ -91,6 +91,24 @@ class UInt16Formatter(Formatter):
         super(UInt16Formatter, self).set(output, comment)
 
 
+class UInt32Formatter(Formatter):
+    def __init__(self, i, comment=''):
+        super(UInt32Formatter, self).__init__()
+
+        self._len = 4
+        self.set(i, comment)
+
+    def set(self, i, comment=None):
+        i = self._parse_int(i)
+
+        if i < 0 or i > 2**32 - 1:
+            raise Exception("UInt32 out of range")
+
+        output = "{0:#04x}, {1:#04x}, {2:#04x}, {3:#04x},".format(i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, i >> 24)
+
+        super(UInt32Formatter, self).set(output, comment)
+
+
 class BCD16Formatter(Formatter):
     def __init__(self, n, comment=''):
         super(BCD16Formatter, self).__init__()
