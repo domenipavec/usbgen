@@ -1,15 +1,15 @@
 import math
 
-from .constants import DESCRIPTOR_TYPE, DESCRIPTOR_SUBTYPE, TERMINAL_TYPE, FORMAT_GUID
+from .constants import DESCRIPTOR_SUBTYPE, TERMINAL_TYPE, FORMAT_GUID
 
-from usbgen.usb import DescriptorWithChildren, Descriptor
+from usbgen.usb import DescriptorWithChildren, Descriptor, DESCRIPTOR_TYPE
 from usbgen.usb.formatters import UInt8Formatter, UInt16Formatter, UInt32Formatter, BCD16Formatter, BitMapFormatter, GUIDFormatter
 from usbgen.usb.defaults import defaults
 
 
 class VideoClassControlInterfaceDescriptor(DescriptorWithChildren):
     def __init__(self, *children, **kwargs):
-        super(VideoClassControlInterfaceDescriptor, self).__init__(DESCRIPTOR_TYPE.CS_INTERFACE, *children)
+        super(VideoClassControlInterfaceDescriptor, self).__init__(DESCRIPTOR_TYPE.CLASS_SPECIFIC_INTERFACE, *children)
 
         self.append(UInt8Formatter(DESCRIPTOR_SUBTYPE.VC_HEADER, "Descriptor Sub-type"))
 
@@ -28,7 +28,7 @@ class VideoClassControlInterfaceDescriptor(DescriptorWithChildren):
 
 class VideoClassStreamInInterfaceDescriptor(DescriptorWithChildren):
     def __init__(self, *children, **kwargs):
-        super(VideoClassStreamInInterfaceDescriptor, self).__init__(DESCRIPTOR_TYPE.CS_INTERFACE, *children)
+        super(VideoClassStreamInInterfaceDescriptor, self).__init__(DESCRIPTOR_TYPE.CLASS_SPECIFIC_INTERFACE, *children)
 
         self.append(UInt8Formatter(DESCRIPTOR_SUBTYPE.VS_INPUT_HEADER, "Descriptor Sub-type"))
 
@@ -77,7 +77,7 @@ class VideoClassStreamInInterfaceDescriptor(DescriptorWithChildren):
 
 class VideoClassInterruptEndpointDescriptor(Descriptor):
     def __init__(self, **kwargs):
-        super(VideoClassInterruptEndpointDescriptor, self).__init__(DESCRIPTOR_TYPE.CS_ENDPOINT)
+        super(VideoClassInterruptEndpointDescriptor, self).__init__(DESCRIPTOR_TYPE.CLASS_SPECIFIC_ENDPOINT)
 
         self.append(UInt8Formatter(DESCRIPTOR_SUBTYPE.EP_INTERRUPT, "Descriptor Sub-type"))
         self.append(UInt16Formatter(defaults.get('max_packet_size', kwargs, 0), "Max packet size"))
@@ -85,7 +85,7 @@ class VideoClassInterruptEndpointDescriptor(Descriptor):
 
 class TerminalDescriptor(Descriptor):
     def __init__(self, subtype, terminal_id):
-        super(TerminalDescriptor, self).__init__(DESCRIPTOR_TYPE.CS_INTERFACE)
+        super(TerminalDescriptor, self).__init__(DESCRIPTOR_TYPE.CLASS_SPECIFIC_INTERFACE)
 
         self.append(UInt8Formatter(subtype, "Descriptor Sub-type"))
 
@@ -151,7 +151,7 @@ class OutputTerminalDescriptor(TerminalDescriptor):
 
 class UncompressedVideoFormatDescriptor(DescriptorWithChildren):
     def __init__(self, *children, **kwargs):
-        super(UncompressedVideoFormatDescriptor, self).__init__(DESCRIPTOR_TYPE.CS_INTERFACE)
+        super(UncompressedVideoFormatDescriptor, self).__init__(DESCRIPTOR_TYPE.CLASS_SPECIFIC_INTERFACE)
 
         self.key_frame_rate = defaults.get('key_frame_rate', kwargs, False)
         self.p_frame_rate = defaults.get('p_frame_rate', kwargs, False)
@@ -193,7 +193,7 @@ class UncompressedVideoFormatDescriptor(DescriptorWithChildren):
 
 class UncompressedVideoFrameDescriptor(Descriptor):
     def __init__(self, **kwargs):
-        super(UncompressedVideoFrameDescriptor, self).__init__(DESCRIPTOR_TYPE.CS_INTERFACE)
+        super(UncompressedVideoFrameDescriptor, self).__init__(DESCRIPTOR_TYPE.CLASS_SPECIFIC_INTERFACE)
 
         self.append(UInt8Formatter(DESCRIPTOR_SUBTYPE.VS_FRAME_UNCOMPRESSED, "Descriptor Sub-type"))
 
